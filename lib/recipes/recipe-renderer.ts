@@ -75,6 +75,10 @@ export type RecipeConfig = {
 	renderSettings?: {
 		doubleSizeForSharperText?: boolean;
 		applyEdgeSnap?: boolean;
+		// When true, the 1-bit PNG pipeline renders the recipe at the device's
+		// requested width/height instead of the default 800×480 → resize path.
+		// Set this on recipes with a responsive small-screen layout.
+		nativeRender?: boolean;
 		[key: string]: boolean | string | number | undefined;
 	};
 	[key: string]: unknown;

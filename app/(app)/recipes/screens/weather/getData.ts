@@ -3,6 +3,13 @@ import { unstable_cache } from "next/cache";
 // Export config to mark this component as dynamic
 export const dynamic = "force-dynamic";
 
+export interface HourlyForecast {
+	label: string;
+	temperature: string;
+	weatherCode: number;
+	description: string;
+}
+
 interface WeatherData {
 	temperature: string;
 	feelsLike: string;
@@ -18,6 +25,7 @@ interface WeatherData {
 	sunrise: string;
 	latitude: number;
 	longitude: number;
+	hourly: HourlyForecast[];
 }
 
 type WeatherParams = {
@@ -51,6 +59,11 @@ interface OpenMeteoResponse {
 		temperature_2m_min: number[];
 		sunset: string[];
 		sunrise: string[];
+	};
+	hourly: {
+		time: string[];
+		temperature_2m: number[];
+		weather_code: number[];
 	};
 }
 
@@ -167,7 +180,7 @@ async function getWeatherData(
 
 		// Fetch weather data from Open-Meteo API
 		const response = await fetch(
-			`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,surface_pressure,weather_code&daily=temperature_2m_max,temperature_2m_min,sunset,sunrise&timezone=auto`,
+			`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,surface_pressure,weather_code&daily=temperature_2m_max,temperature_2m_min,sunset,sunrise&hourly=temperature_2m,weather_code&forecast_hours=7&timezone=auto`,
 			{
 				headers: {
 					Accept: "application/json",
@@ -227,6 +240,26 @@ async function getWeatherData(
 
 		const current = data.current;
 		const daily = data.daily;
+		const hourly = data.hourly;
+
+		const formatHourLabel = (timeString: string, index: number): string => {
+			if (index === 0) return "Now";
+			const date = new Date(timeString);
+			return date.toLocaleString("en-US", {
+				hour: "2-digit",
+				minute: "2-digit",
+				hour12: false,
+			});
+		};
+
+		const hourlyForecast: HourlyForecast[] = (hourly?.time ?? []).map(
+			(t, i) => ({
+				label: formatHourLabel(t, i),
+				temperature: formatTemperature(hourly.temperature_2m[i]),
+				weatherCode: hourly.weather_code[i],
+				description: getWeatherDescription(hourly.weather_code[i]),
+			}),
+		);
 
 		return {
 			temperature: formatTemperature(current.temperature_2m),
@@ -243,6 +276,7 @@ async function getWeatherData(
 			sunrise: formatTime(daily.sunrise[0]),
 			latitude: latitude || 0,
 			longitude: longitude || 0,
+			hourly: hourlyForecast,
 		};
 	} catch (error) {
 		// Silently handle prerendering errors - fetch() rejects during prerendering
@@ -291,6 +325,7 @@ async function fetchWeatherDataNoCache(
 			sunrise: "N/A",
 			latitude: params?.latitude || 0,
 			longitude: params?.longitude || 0,
+			hourly: [],
 		};
 	}
 

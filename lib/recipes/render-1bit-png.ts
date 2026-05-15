@@ -3,6 +3,7 @@ import sharp from "sharp";
 import { DitheringMethod, renderBmp } from "@/utils/render-bmp";
 import { renderPng } from "@/utils/render-png";
 import {
+	addDimensionsToProps,
 	type ComponentProps,
 	type RecipeConfig,
 	renderRecipeOutputs,
@@ -32,28 +33,41 @@ export async function renderRecipeTo1BitPng({
 	outputWidth,
 	outputHeight,
 }: Args): Promise<Buffer | null> {
-	// Render the recipe at its native 800×480 size as a regular PNG.
+	const nativeRender = config?.renderSettings?.nativeRender === true;
+	// Recipes with a responsive layout opt in to render directly at the device
+	// size. Everything else uses the cheap path: render at 800×480, then
+	// nearest-neighbor resize down so existing 800×480-designed recipes still
+	// fit on smaller panels (mediocre quality, zero per-recipe work).
+	const renderWidth = nativeRender ? outputWidth : NATIVE_RECIPE_WIDTH;
+	const renderHeight = nativeRender ? outputHeight : NATIVE_RECIPE_HEIGHT;
+
+	// Match the OG /api/bitmap flow: thread the actual render dimensions into
+	// the component's props so responsive recipes can branch on width/height.
+	const propsWithDimensions = props
+		? addDimensionsToProps(props, renderWidth, renderHeight)
+		: undefined;
+
 	const native = await renderRecipeOutputs({
 		slug,
 		Component,
-		props,
+		props: propsWithDimensions,
 		config,
-		imageWidth: NATIVE_RECIPE_WIDTH,
-		imageHeight: NATIVE_RECIPE_HEIGHT,
+		imageWidth: renderWidth,
+		imageHeight: renderHeight,
 		formats: ["png"],
 		html,
 		cookies,
 	});
 	if (!native.png) return null;
 
-	// Cheap-path resize: nearest-neighbor to the device's output size.
-	const resizedPng = await sharp(native.png)
-		.resize(outputWidth, outputHeight, { kernel: "nearest", fit: "fill" })
-		.png()
-		.toBuffer();
+	const sized = nativeRender
+		? native.png
+		: await sharp(native.png)
+				.resize(outputWidth, outputHeight, { kernel: "nearest", fit: "fill" })
+				.png()
+				.toBuffer();
 
-	// Dither to 1-bit BMP at the output size, then convert to 1-bit PNG.
-	const bmp = await renderBmp(resizedPng, {
+	const bmp = await renderBmp(sized, {
 		width: outputWidth,
 		height: outputHeight,
 		grayscale: 2,

@@ -148,8 +148,10 @@
 			"name": "rbouteiller",
 			"github": ""
 		},
-		"renderSettings": {},
-		"version": "0.1.0",
+		"renderSettings": {
+			"nativeRender": true
+		},
+		"version": "0.2.0",
 		"category": "display-components"
 	},
 	"responsive-example": {
