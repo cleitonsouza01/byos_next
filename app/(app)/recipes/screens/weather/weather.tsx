@@ -59,28 +59,28 @@ const HOURLY_SUN =
 const HOURLY_RAIN =
 	"M160 384C107 384 64 341 64 288C64 245.5 91.6 209.4 129.9 196.8C128.6 190.1 128 183.1 128 176C128 114.1 178.1 64 240 64C283.1 64 320.5 88.3 339.2 124C353.9 106.9 375.7 96 400 96C444.2 96 480 131.8 480 176C480 181.5 479.4 186.8 478.4 192C478.9 192 479.5 192 480 192C533 192 576 235 576 288C576 341 533 384 480 384L160 384zM161.6 452.2C162.7 449.7 165.2 448 168 448C170.8 448 173.3 449.6 174.4 452.2L204.6 520.4C206.8 525.5 208 530.9 208 536.4C208 558.3 189.9 576 168 576C146.1 576 128 558.3 128 536.4C128 530.9 129.2 525.4 131.4 520.4L161.6 452.2zM313.6 452.2C314.7 449.7 317.2 448 320 448C322.8 448 325.3 449.6 326.4 452.2L356.6 520.4C358.8 525.5 360 530.9 360 536.4C360 558.3 341.9 576 320 576C298.1 576 280 558.3 280 536.4C280 530.9 281.2 525.4 283.4 520.4L313.6 452.2zM435.4 520.4L465.6 452.2C466.7 449.7 469.2 448 472 448C474.8 448 477.3 449.6 478.4 452.2L508.6 520.4C510.8 525.5 512 530.9 512 536.4C512 558.3 493.9 576 472 576C450.1 576 432 558.3 432 536.4C432 530.9 433.2 525.4 435.4 520.4z";
 
-const hourlyGlyph = (desc: string) => {
+const glyphFor = (desc: string): { path: string; label: string } => {
 	const d = desc.toLowerCase();
-	let path = HOURLY_CLOUD;
-	let label = "Cloud";
-	if (d.includes("clear") || d.includes("sun")) {
-		path = HOURLY_SUN;
-		label = "Clear";
-	} else if (
+	if (d.includes("clear") || d.includes("sun"))
+		return { path: HOURLY_SUN, label: "Clear" };
+	if (
 		d.includes("rain") ||
 		d.includes("drizzle") ||
 		d.includes("snow") ||
 		d.includes("thunder")
-	) {
-		path = HOURLY_RAIN;
-		label = "Precipitation";
-	}
+	)
+		return { path: HOURLY_RAIN, label: "Precipitation" };
+	return { path: HOURLY_CLOUD, label: "Cloud" };
+};
+
+const sizedGlyph = (desc: string, px: number) => {
+	const { path, label } = glyphFor(desc);
 	return (
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
 			viewBox="0 0 640 640"
-			width="36"
-			height="36"
+			width={px}
+			height={px}
 			role="img"
 			aria-label={label}
 		>
@@ -112,37 +112,44 @@ export default function Weather({
 	const isSmallScreen = !isHalfScreen && width <= 700;
 
 	if (isSmallScreen) {
-		const strip = hourly.length > 0 ? hourly.slice(0, 7) : [];
+		// Pick 4 hours stepped 2h apart, starting from +2h (or fall back to
+		// the first 4 if upstream hasn't supplied a deep enough forecast).
+		const stripSource =
+			hourly.length >= 9
+				? [hourly[2], hourly[4], hourly[6], hourly[8]]
+				: hourly.slice(1, 5);
+		const strip = stripSource.filter(Boolean) as HourlyForecast[];
 
 		return (
 			<PreSatori width={width} height={height}>
-				<div className="flex flex-col w-full h-full bg-white text-black p-3">
-					<div className="flex flex-row items-center justify-between">
-						<div className="flex flex-row items-center gap-2">
-							<div className="w-16 h-16 flex items-center justify-center">
-								{getWeatherIcon(description)}
-							</div>
-							<div className="flex flex-col leading-none">
-								<span className="text-6xl font-inter">{temperature}°C</span>
-								<span className="text-xl mt-1">{description}</span>
-							</div>
-						</div>
-						<div className="flex flex-col items-end leading-none">
-							<span className="text-2xl">{location}</span>
-							<div className="flex flex-row items-center text-2xl mt-1 font-blockkie">
-								{tempUp} {highTemp}°C {tempDown} {lowTemp}°C
+				<div className="flex flex-col w-full h-full bg-white text-black px-5 py-3">
+					{/* Hero row: big icon + huge temperature + ↑↓ */}
+					<div className="flex flex-row items-center">
+						<div className="shrink-0 mr-4">{sizedGlyph(description, 96)}</div>
+						<div className="flex flex-col leading-none flex-1">
+							<span className="text-8xl font-inter">{temperature}°</span>
+							<div className="flex flex-row items-center text-3xl mt-2 font-blockkie">
+								{tempUp} {highTemp}°
+								<span className="inline-block w-4" />
+								{tempDown} {lowTemp}°
 							</div>
 						</div>
 					</div>
 
-					<div className="w-full border-t border-black my-2" />
+					{/* Subtitle row */}
+					<div className="text-2xl mt-1">
+						{location} · {description}
+					</div>
 
-					<div className="flex flex-row justify-between items-stretch flex-1">
+					<div className="w-full border-t-2 border-black mt-2 mb-2" />
+
+					{/* 4-cell forecast strip — stepped 2h apart */}
+					<div className="flex flex-row justify-between items-stretch flex-1 pb-1">
 						{strip.length === 0
-							? Array.from({ length: 7 }).map((_, i) => (
+							? Array.from({ length: 4 }).map((_, i) => (
 									<div
 										key={`hourly-placeholder-${i}`}
-										className="flex flex-col items-center justify-center flex-1 text-xl text-gray-500"
+										className="flex flex-col items-center justify-center flex-1 text-3xl text-gray-500"
 									>
 										—
 									</div>
@@ -150,32 +157,15 @@ export default function Weather({
 							: strip.map((h, i) => (
 									<div
 										key={`hourly-${i}-${h.label}`}
-										className="flex flex-col items-center justify-center flex-1"
+										className="flex flex-col items-center justify-between flex-1"
 									>
-										<span className="text-lg leading-none">{h.label}</span>
-										<div className="my-1">{hourlyGlyph(h.description)}</div>
-										<span className="text-2xl leading-none">
+										<span className="text-3xl leading-none">{h.label}</span>
+										<div>{sizedGlyph(h.description, 56)}</div>
+										<span className="text-4xl leading-none font-inter">
 											{h.temperature}°
 										</span>
 									</div>
 								))}
-					</div>
-
-					<div className="w-full border-t border-black my-2" />
-
-					<div className="flex flex-row justify-around items-center text-2xl">
-						<div className="flex flex-row items-center">
-							<div className="w-8 h-8 flex items-center justify-center">
-								{humidityIcon}
-							</div>
-							<span className="ml-1">Humid {humidity}%</span>
-						</div>
-						<div className="flex flex-row items-center">
-							<div className="w-8 h-8 flex items-center justify-center">
-								{windIcon}
-							</div>
-							<span className="ml-1">Wind {windSpeed} km/h</span>
-						</div>
 					</div>
 				</div>
 			</PreSatori>

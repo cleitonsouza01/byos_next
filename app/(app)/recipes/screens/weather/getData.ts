@@ -180,7 +180,7 @@ async function getWeatherData(
 
 		// Fetch weather data from Open-Meteo API
 		const response = await fetch(
-			`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,surface_pressure,weather_code&daily=temperature_2m_max,temperature_2m_min,sunset,sunrise&hourly=temperature_2m,weather_code&forecast_hours=7&timezone=auto`,
+			`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,surface_pressure,weather_code&daily=temperature_2m_max,temperature_2m_min,sunset,sunrise&hourly=temperature_2m,weather_code&forecast_hours=9&timezone=auto`,
 			{
 				headers: {
 					Accept: "application/json",
