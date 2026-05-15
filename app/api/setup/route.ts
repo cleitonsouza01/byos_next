@@ -228,13 +228,17 @@ export async function GET(request: Request) {
 						has_api_key: Boolean(api_key),
 					},
 				});
+				const setupImageUrl =
+					modelEntry?.name === "xiao_c6_75v1"
+						? `${new URL(request.url).origin}/setup-xiao-c6-75v1.png`
+						: null;
 				return NextResponse.json(
 					{
 						status: 200,
 						api_key: newDevice.api_key,
 						friendly_id: newDevice.friendly_id,
-						image_url: null,
-						filename: null,
+						image_url: setupImageUrl,
+						filename: setupImageUrl ? "setup_xiao_c6_75v1" : null,
 						message: `Device ${newDevice.friendly_id} added to BYOS!`,
 					},
 					{ status: 200 },
