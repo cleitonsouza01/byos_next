@@ -11,14 +11,22 @@
 [![GitHub Forks](https://img.shields.io/github/forks/usetrmnl/byos_next?style=social)](https://github.com/usetrmnl/byos_next/network/members)
 
 ## 🚀 Overview
-**BYOS (Build Your Own Server) Next.js** is a Next.js implementation that powers device management, playlist-driven content scheduling, and on-demand BMP generation for e-ink displays.
+**BYOS (Build Your Own Server) Next.js** is a Next.js implementation that powers device management, playlist-driven content scheduling, and on-demand BMP/PNG generation for e-ink displays.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fusetrmnl%2Fbyos_next&env=AUTH_ENABLED&envDefaults=%7B%22AUTH_ENABLED%22%3A%22false%22%7D&envDescription=User%20authentication%20is%20disabled.&envLink=https%3A%2F%2Fgithub.com%2Fusetrmnl%2Fbyos_next%3Ftab%3Dreadme-ov-file&project-name=byos-next&repository-name=byos_next&demo-title=BYOS%20NextJS&demo-description=BYOS%20(Build%20Your%20Own%20Server)%20Next.js%2C%20TRMNL%20server%20with%20local%20recipe%20rendering%20and%20cloud%20proxy%20support.&demo-url=https%3A%2F%2Fbyos-next-demo.vercel.app&demo-image=https%3A%2F%2Fusetrmnl.com%2Fimages%2Fbrand%2Ficons%2Ficon--brand.svg&products=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22neon%22%2C%22productSlug%22%3A%22neon%22%2C%22protocol%22%3A%22storage%22%2C%22group%22%3A%22postgres%22%7D%5D)
+
+## 🆕 What's New (May 2026)
+- **New device support: Seeed XIAO ESP32-C6 + Waveshare 7.5" V1** (`xiao_c6_75v1`, 640×384, 1-bit B/W). Full plan and contract reference at [`docs/superpowers/plans/2026-05-14-byos-xiao-c6-75v1-support.md`](docs/superpowers/plans/2026-05-14-byos-xiao-c6-75v1-support.md).
+- **1-bit PNG rendering pipeline** — new `/api/png/[[...slug]]` endpoint mirrors `/api/bitmap` but emits 1-bit PNG for firmwares (like the XIAO) that don't accept BMP. `/api/display` auto-routes PNG vs BMP based on the device model's `mime_type` and `bit_depth`.
+- **Device Model selector in the edit UI** — pick a model from the merged registry and the form auto-fills `screen_width`, `screen_height`, `grayscale`, and the size preset together. Adds a `640×384` size preset.
+- **`/api/setup` autofill** — when the firmware's `Model` header matches a known model, the new device row is pre-populated with the right dimensions and grayscale. Unknown models still pair, just without autofill.
+- **Local model overrides via `data/trmnl/models.local.json`** — add devices that aren't in the public `usetrmnl.com` registry. Local entries override upstream by `name` and survive the 24h upstream sync.
+- **Bug fixes:** `utils/render-png.ts` now correctly returns the encoded buffer (was silently resolving `undefined` due to a missing Promise wrap). `/api/setup` derives `image_url` from forwarded/host headers instead of the container's internal `0.0.0.0` bind.
 
 ### ✨ Features
 - Device management UI with MAC/API key registration, status tracking, and refresh scheduling.
 - Playlist-based screen rotation with time and weekday rules, custom durations, and per-device assignment.
-- On-demand screen rendering to 1-bit BMP via Takumi/Satori with caching and revalidation.
+- On-demand screen rendering to 1-bit BMP or 1-bit PNG via Takumi/Satori with caching and revalidation; per-device format auto-selected from the model registry.
 - Postgres backed persistence for devices, logs, and playlists.
 - Recipes gallery to prototype screens and compare direct vs. bitmap rendering before pushing to hardware.
 - Tailwind v4 + TypeScript + Next.js 16 + React 19; Biome lint/format baseline.
@@ -27,6 +35,7 @@
 ## Table of Contents
 - [BYOS Next.js for TRMNL 🖥️](#byos-nextjs-for-trmnl-️)
   - [🚀 Overview](#-overview)
+  - [🆕 What's New (May 2026)](#-whats-new-may-2026)
     - [✨ Features](#-features)
   - [Table of Contents](#table-of-contents)
   - [Highlights](#highlights)
