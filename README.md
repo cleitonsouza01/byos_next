@@ -21,7 +21,10 @@
 - **Device Model selector in the edit UI** — pick a model from the merged registry and the form auto-fills `screen_width`, `screen_height`, `grayscale`, and the size preset together. Adds a `640×384` size preset.
 - **`/api/setup` autofill** — when the firmware's `Model` header matches a known model, the new device row is pre-populated with the right dimensions and grayscale. Unknown models still pair, just without autofill.
 - **Local model overrides via `data/trmnl/models.local.json`** — add devices that aren't in the public `usetrmnl.com` registry. Local entries override upstream by `name` and survive the 24h upstream sync.
-- **Bug fixes:** `utils/render-png.ts` now correctly returns the encoded buffer (was silently resolving `undefined` due to a missing Promise wrap). `/api/setup` derives `image_url` from forwarded/host headers instead of the container's internal `0.0.0.0` bind.
+- **Bug fixes:**
+  - `utils/render-png.ts` now correctly returns the encoded buffer (was silently resolving `undefined` due to a missing Promise wrap).
+  - `/api/setup` derives `image_url` from forwarded/host headers instead of the container's internal `0.0.0.0` bind.
+  - `/catalog` honors `ENABLE_EXTERNAL_CATALOG` at runtime. The page is rendered with `cacheComponents: true` (PPR), so it was being statically prerendered at `next build` time when the env var was unset — flipping the var at runtime had no effect because the cached "External catalog is disabled" HTML was served. Fixed with `await connection()` so the page re-renders per request. Same pattern as the earlier `/sign-in` fix for `ERROR_ENV_VAR_DATABASE_URL_NOT_SET` — any server component that reads runtime-only state under PPR needs the `connection()` marker.
 
 ### ✨ Features
 - Device management UI with MAC/API key registration, status tracking, and refresh scheduling.
