@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import {
 	fetchCatalogResult,
 	fetchTrmnlRecipesPage,
@@ -11,6 +12,12 @@ export const metadata = {
 };
 
 export default async function CatalogPage() {
+	// Without this the page is partially-prerendered at build time, where
+	// ENABLE_EXTERNAL_CATALOG isn't set — the resulting static HTML always
+	// shows the "External catalog is disabled" state even after the env
+	// is flipped at runtime. `connection()` defers render to request time.
+	await connection();
+
 	const [community, official] = await Promise.all([
 		fetchCatalogResult(),
 		fetchTrmnlRecipesPage(1),
