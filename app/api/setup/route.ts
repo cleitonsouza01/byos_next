@@ -4,6 +4,7 @@ import { getCurrentUserId } from "@/lib/auth/get-user";
 import { db } from "@/lib/database/db";
 import { checkDbConnection } from "@/lib/database/utils";
 import { logError, logInfo } from "@/lib/logger";
+import { findModel } from "@/lib/trmnl/registry";
 import { generateApiKey, generateFriendlyId } from "@/utils/helpers";
 
 export async function GET(request: Request) {
@@ -159,6 +160,17 @@ export async function GET(request: Request) {
 				);
 			}
 
+			// Autofill width/height/grayscale from the device-model registry when the
+			// firmware-supplied Model header matches a known key. Admin can still
+			// override these from the device-edit form later. Unknown Model values fall
+			// through with null dimensions (rendering will use DEFAULT_IMAGE_*).
+			const modelEntry = model ? await findModel(model) : null;
+			const presetWidth = modelEntry?.width ?? null;
+			const presetHeight = modelEntry?.height ?? null;
+			const presetGrayscale = modelEntry
+				? Math.min(Math.max(modelEntry.colors ?? 2, 2), 16)
+				: null;
+
 			const friendly_id = generateFriendlyId(
 				macAddress,
 				new Date().toISOString().replace(/[-:Z]/g, ""),
@@ -195,6 +207,11 @@ export async function GET(request: Request) {
 						).toISOString(), // 1 hour from now
 						timezone: "Europe/London", // Default timezone
 						user_id: currentUserId,
+						model: modelEntry?.name ?? model ?? null,
+						screen_width: presetWidth,
+						screen_height: presetHeight,
+						grayscale: presetGrayscale,
+						screen_orientation: "landscape",
 					})
 					.returningAll()
 					.executeTakeFirst();
