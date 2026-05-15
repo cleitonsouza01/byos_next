@@ -228,9 +228,14 @@ export async function GET(request: Request) {
 						has_api_key: Boolean(api_key),
 					},
 				});
+				const proto = request.headers.get("x-forwarded-proto") || "http";
+				const host =
+					request.headers.get("x-forwarded-host") ||
+					request.headers.get("host") ||
+					"localhost";
 				const setupImageUrl =
 					modelEntry?.name === "xiao_c6_75v1"
-						? `${new URL(request.url).origin}/setup-xiao-c6-75v1.png`
+						? `${proto}://${host}/setup-xiao-c6-75v1.png`
 						: null;
 				return NextResponse.json(
 					{
