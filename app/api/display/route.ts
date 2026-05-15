@@ -8,6 +8,7 @@ import {
 	DEFAULT_IMAGE_HEIGHT,
 	DEFAULT_IMAGE_WIDTH,
 } from "@/lib/recipes/recipe-renderer";
+import { findModel } from "@/lib/trmnl/registry";
 import type { RefreshSchedule } from "@/lib/types";
 import {
 	buildDisplayResponse,
@@ -95,6 +96,14 @@ export async function GET(request: Request) {
 		let screenToDisplay = device.screen;
 		const orientation = device.screen_orientation || "landscape";
 
+		const deviceModel = device.model ? await findModel(device.model) : null;
+		const isPng =
+			deviceModel?.mime_type === "image/png" && deviceModel.bit_depth === 1;
+		const ext = isPng ? "png" : "bmp";
+		const imageBaseUrl = isPng
+			? `${headers.hostUrl}/api/png`
+			: `${headers.hostUrl}/api/bitmap`;
+
 		// Use dimensions from headers if provided, otherwise fall back to device settings
 		const storedWidth =
 			orientation === "landscape"
@@ -143,10 +152,11 @@ export async function GET(request: Request) {
 						dynamicRefreshRate = 60;
 					}
 				}
-				imageUrl = `${baseUrl}/${screenToDisplay || "not-found"}.bmp?${baseQueryParams}`;
+				imageUrl = `${imageBaseUrl}/${screenToDisplay || "not-found"}.${ext}?${baseQueryParams}`;
 				break;
 
 			case DeviceDisplayMode.MIXUP:
+				// TODO(xiao_c6_75v1): mixup currently always serves BMP; not yet supported on PNG-only firmwares.
 				if (device.mixup_id) {
 					imageUrl = `${baseUrl}/mixup/${device.mixup_id}.bmp?${baseQueryParams}&access_token=${encodeURIComponent(headers.apiKey)}`;
 					const metadata = {
@@ -173,7 +183,7 @@ export async function GET(request: Request) {
 					180,
 					device.timezone || "UTC",
 				);
-				imageUrl = `${baseUrl}/${screenToDisplay || "not-found"}.bmp?${baseQueryParams}`;
+				imageUrl = `${imageBaseUrl}/${screenToDisplay || "not-found"}.${ext}?${baseQueryParams}`;
 				break;
 		}
 
