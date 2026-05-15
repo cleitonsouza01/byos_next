@@ -64,9 +64,27 @@ export type TrmnlPalette = {
 
 type WrappedList<T> = { data: T[] };
 
+// Loaded from disk on every call; cached at the OS page cache level — local file is small.
+async function readLocalModels(): Promise<TrmnlModel[]> {
+	try {
+		const file = path.join(DATA_DIR, "models.local.json");
+		const raw = await fs.readFile(file, "utf8");
+		const parsed = JSON.parse(raw) as WrappedList<TrmnlModel>;
+		return parsed?.data ?? [];
+	} catch {
+		return [];
+	}
+}
+
 export async function listModels(): Promise<TrmnlModel[]> {
 	const payload = (await getRegistry("models")) as WrappedList<TrmnlModel>;
-	return payload?.data ?? [];
+	const upstream = payload?.data ?? [];
+	const local = await readLocalModels();
+	if (!local.length) return upstream;
+	const byName = new Map<string, TrmnlModel>();
+	for (const m of upstream) byName.set(m.name, m);
+	for (const m of local) byName.set(m.name, m); // local overrides upstream by name
+	return Array.from(byName.values());
 }
 
 export async function listPalettes(): Promise<TrmnlPalette[]> {
