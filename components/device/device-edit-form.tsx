@@ -47,6 +47,10 @@ const DEVICE_SIZE_PRESETS = {
 	custom: null,
 } as const;
 
+// Radix Select forbids an empty-string value on <SelectItem>; use a sentinel
+// the handler translates back to null when persisting.
+export const CUSTOM_MODEL_VALUE = "__custom__";
+
 type DeviceSizePreset = keyof typeof DEVICE_SIZE_PRESETS;
 
 interface DeviceEditFormProps {
@@ -449,14 +453,16 @@ export default function DeviceEditForm({
 							<div className="space-y-1.5">
 								<Label htmlFor="device-model">Device model</Label>
 								<Select
-									value={editedDevice.model ?? ""}
+									value={editedDevice.model ?? CUSTOM_MODEL_VALUE}
 									onValueChange={onModelChange}
 								>
 									<SelectTrigger id="device-model" className="w-full">
 										<SelectValue placeholder="Custom (manual dimensions)" />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="">Custom (manual dimensions)</SelectItem>
+										<SelectItem value={CUSTOM_MODEL_VALUE}>
+											Custom (manual dimensions)
+										</SelectItem>
 										{availableModels.map((m) => (
 											<SelectItem key={m.name} value={m.name}>
 												{m.label} — {m.width}×{m.height}, {m.bit_depth}-bit

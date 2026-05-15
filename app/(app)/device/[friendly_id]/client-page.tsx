@@ -7,7 +7,9 @@ import { toast } from "sonner";
 import { fetchDeviceByFriendlyId, updateDevice } from "@/app/actions/device";
 import { PageTemplate } from "@/components/common/page-template";
 import { StatusIndicator } from "@/components/common/status-indicator";
-import DeviceEditForm from "@/components/device/device-edit-form";
+import DeviceEditForm, {
+	CUSTOM_MODEL_VALUE,
+} from "@/components/device/device-edit-form";
 import DeviceView from "@/components/device/device-view";
 import DeviceLogsContainer from "@/components/device-logs/device-logs-container";
 import { Button } from "@/components/ui/button";
@@ -205,11 +207,14 @@ export default function DeviceClientPage({
 	};
 
 	const handleModelChange = (modelName: string) => {
-		const next = availableModels.find((m) => m.name === modelName);
+		const isCustom = modelName === CUSTOM_MODEL_VALUE;
+		const next = isCustom
+			? undefined
+			: availableModels.find((m) => m.name === modelName);
 
 		setEditedDevice((prev) => ({
 			...prev,
-			model: modelName || null,
+			model: isCustom ? null : modelName,
 			...(next
 				? {
 						screen_width: next.width,
