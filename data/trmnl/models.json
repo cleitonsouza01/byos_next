@@ -2342,6 +2342,40 @@
           ]
         ]
       }
+    },
+    {
+      "name": "xiao_c6_75v1",
+      "label": "Seeed XIAO ESP32-C6 + Waveshare 7.5\" V1",
+      "description": "Seeed XIAO ESP32-C6 + Waveshare 7.5\" V1 (640×384, 1-bit B/W)",
+      "width": 640,
+      "height": 384,
+      "colors": 2,
+      "bit_depth": 1,
+      "scale_factor": 1,
+      "rotation": 0,
+      "mime_type": "image/png",
+      "offset_x": 0,
+      "offset_y": 0,
+      "kind": "byod",
+      "palette_ids": ["bw"],
+      "preview_white_point": "true_white",
+      "image_size_limit": 90000,
+      "image_upload_supported": true,
+      "css": {
+        "classes": {
+          "device": "screen--xiao_c6_75v1",
+          "size": "screen--md",
+          "density": "screen--density-1x"
+        },
+        "variables": [
+          ["--screen-w", "640px"],
+          ["--screen-h", "384px"],
+          ["--pixel-ratio", "1.0"],
+          ["--dither-pixel-ratio", "1.0"],
+          ["--ui-scale", "0.8"],
+          ["--gap-scale", "1.0"]
+        ]
+      }
     }
   ]
 }
