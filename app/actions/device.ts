@@ -193,6 +193,7 @@ export async function updateDevice(
 	const updateData: Record<string, unknown> = {};
 
 	if (device.name !== undefined) updateData.name = device.name;
+	if (device.model !== undefined) updateData.model = device.model;
 	if (device.mac_address !== undefined)
 		updateData.mac_address = device.mac_address;
 	if (device.api_key !== undefined) updateData.api_key = device.api_key;

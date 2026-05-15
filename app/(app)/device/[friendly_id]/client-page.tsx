@@ -15,6 +15,7 @@ import {
 	DEFAULT_IMAGE_HEIGHT,
 	DEFAULT_IMAGE_WIDTH,
 } from "@/lib/recipes/constants";
+import type { TrmnlModel } from "@/lib/trmnl/registry";
 import type { Device, Mixup, Playlist, PlaylistItem } from "@/lib/types";
 import {
 	generateApiKey,
@@ -27,6 +28,7 @@ import {
 // Device size presets
 const DEVICE_SIZE_PRESETS = {
 	"800x480": { width: 800, height: 480 },
+	"640x384": { width: 640, height: 384 },
 	"1872x1404": { width: 1872, height: 1404 },
 	custom: null,
 } as const;
@@ -39,6 +41,7 @@ interface DeviceClientPageProps {
 	availablePlaylists: Playlist[];
 	availableMixups: Mixup[];
 	playlistItems: PlaylistItem[];
+	availableModels: TrmnlModel[];
 }
 
 export default function DeviceClientPage({
@@ -47,6 +50,7 @@ export default function DeviceClientPage({
 	availablePlaylists,
 	availableMixups,
 	playlistItems,
+	availableModels,
 }: DeviceClientPageProps) {
 	const [device, setDevice] = useState<
 		Device & { status?: string; type?: string }
@@ -70,8 +74,8 @@ export default function DeviceClientPage({
 			const width = editedDevice.screen_width || DEFAULT_IMAGE_WIDTH;
 			const height = editedDevice.screen_height || DEFAULT_IMAGE_HEIGHT;
 
-			// Check if current dimensions match a preset
 			if (width === 800 && height === 480) return "800x480";
+			if (width === 640 && height === 384) return "640x384";
 			if (width === 1872 && height === 1404) return "1872x1404";
 			return "custom";
 		},
@@ -200,6 +204,33 @@ export default function DeviceClientPage({
 		});
 	};
 
+	const handleModelChange = (modelName: string) => {
+		const next = availableModels.find((m) => m.name === modelName);
+
+		setEditedDevice((prev) => ({
+			...prev,
+			model: modelName || null,
+			...(next
+				? {
+						screen_width: next.width,
+						screen_height: next.height,
+						// Map model colors → grayscale levels supported by the dither path
+						grayscale: next.colors >= 16 ? 16 : next.colors >= 4 ? 4 : 2,
+					}
+				: {}),
+		}));
+
+		if (next) {
+			if (next.width === 800 && next.height === 480)
+				setDeviceSizePreset("800x480");
+			else if (next.width === 640 && next.height === 384)
+				setDeviceSizePreset("640x384");
+			else if (next.width === 1872 && next.height === 1404)
+				setDeviceSizePreset("1872x1404");
+			else setDeviceSizePreset("custom");
+		}
+	};
+
 	// Handle device size preset change
 	const handleDeviceSizePresetChange = (preset: DeviceSizePreset) => {
 		setDeviceSizePreset(preset);
@@ -237,6 +268,7 @@ export default function DeviceClientPage({
 				: editedDevice.screen_height || DEFAULT_IMAGE_HEIGHT;
 		if (
 			!(width === 800 && height === 480) &&
+			!(width === 640 && height === 384) &&
 			!(width === 1872 && height === 1404)
 		) {
 			setDeviceSizePreset("custom");
@@ -283,6 +315,7 @@ export default function DeviceClientPage({
 				screen_height: editedDevice.screen_height,
 				screen_orientation: editedDevice.screen_orientation,
 				grayscale: editedDevice.grayscale,
+				model: editedDevice.model,
 			});
 
 			if (result.success) {
@@ -456,6 +489,8 @@ export default function DeviceClientPage({
 					availablePlaylists={availablePlaylists}
 					availableMixups={availableMixups}
 					deviceSizePreset={deviceSizePreset}
+					availableModels={availableModels}
+					onModelChange={handleModelChange}
 					apiKeyError={apiKeyError}
 					friendlyIdError={friendlyIdError}
 					isSaving={isSaving}

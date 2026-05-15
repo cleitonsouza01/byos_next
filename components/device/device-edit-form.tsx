@@ -35,12 +35,14 @@ import {
 	DEFAULT_IMAGE_HEIGHT,
 	DEFAULT_IMAGE_WIDTH,
 } from "@/lib/recipes/constants";
+import type { TrmnlModel } from "@/lib/trmnl/registry";
 import type { Device, Mixup, Playlist } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { formatTimezone, timezones } from "@/utils/helpers";
 
 const DEVICE_SIZE_PRESETS = {
 	"800x480": { width: 800, height: 480 },
+	"640x384": { width: 640, height: 384 },
 	"1872x1404": { width: 1872, height: 1404 },
 	custom: null,
 } as const;
@@ -53,6 +55,8 @@ interface DeviceEditFormProps {
 	availablePlaylists: Playlist[];
 	availableMixups: Mixup[];
 	deviceSizePreset: DeviceSizePreset;
+	availableModels: TrmnlModel[];
+	onModelChange: (modelName: string) => void;
 	apiKeyError: string | null;
 	friendlyIdError: string | null;
 	isSaving: boolean;
@@ -101,6 +105,8 @@ export default function DeviceEditForm({
 	availablePlaylists,
 	availableMixups,
 	deviceSizePreset,
+	availableModels,
+	onModelChange,
 	apiKeyError,
 	friendlyIdError,
 	isSaving: _isSaving,
@@ -440,6 +446,29 @@ export default function DeviceEditForm({
 						</TabsContent>
 
 						<TabsContent value="display" className="mt-4 space-y-4">
+							<div className="space-y-1.5">
+								<Label htmlFor="device-model">Device model</Label>
+								<Select
+									value={editedDevice.model ?? ""}
+									onValueChange={onModelChange}
+								>
+									<SelectTrigger id="device-model" className="w-full">
+										<SelectValue placeholder="Custom (manual dimensions)" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="">Custom (manual dimensions)</SelectItem>
+										{availableModels.map((m) => (
+											<SelectItem key={m.name} value={m.name}>
+												{m.label} — {m.width}×{m.height}, {m.bit_depth}-bit
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+								<p className="text-xs text-muted-foreground">
+									Picking a model fills in width, height, and grayscale
+									automatically. Leave on Custom to set them manually.
+								</p>
+							</div>
 							<Field label="Device size" htmlFor="device_size_preset">
 								<Select
 									value={deviceSizePreset}
@@ -452,6 +481,7 @@ export default function DeviceEditForm({
 									</SelectTrigger>
 									<SelectContent>
 										<SelectItem value="800x480">800 × 480</SelectItem>
+										<SelectItem value="640x384">640 × 384</SelectItem>
 										<SelectItem value="1872x1404">1872 × 1404</SelectItem>
 										<SelectItem value="custom">Custom</SelectItem>
 									</SelectContent>
