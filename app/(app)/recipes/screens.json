@@ -171,6 +171,36 @@
 		"version": "0.1.0",
 		"category": "display-components"
 	},
+	"picture": {
+		"title": "Picture",
+		"published": true,
+		"createdAt": "2026-05-15T00:00:00Z",
+		"updatedAt": "2026-05-15T00:00:00Z",
+		"description": "Displays a single image at the device's native resolution. Dithered to 1-bit at render time.",
+		"componentPath": "./screens/picture",
+		"hasDataFetch": false,
+		"props": {},
+		"params": {
+			"imageUrl": {
+				"type": "string",
+				"label": "Image URL",
+				"description": "PNG/JPEG URL to display.",
+				"default": "https://upload.wikimedia.org/wikipedia/commons/3/3a/Cat03.jpg",
+				"placeholder": "https://example.com/image.png"
+			},
+			"fit": {
+				"type": "string",
+				"label": "Fit mode",
+				"description": "'cover' fills the screen and crops; 'contain' fits inside with white bars.",
+				"default": "cover"
+			}
+		},
+		"tags": ["bitmap", "image", "configurable"],
+		"author": { "name": "cleitonsouza01", "github": "cleitonsouza01" },
+		"renderSettings": {},
+		"version": "0.1.0",
+		"category": "display-components"
+	},
 	"not-found": {
 		"title": "Not Found Recipe",
 		"published": true,
