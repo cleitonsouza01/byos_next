@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { cache } from "react";
 import NotFoundScreen from "@/app/(app)/recipes/screens/not-found/not-found";
+import { getCurrentUserId } from "@/lib/auth/get-user";
 import {
 	DEFAULT_IMAGE_HEIGHT,
 	DEFAULT_IMAGE_WIDTH,
@@ -44,10 +45,14 @@ export async function GET(
 			`Bitmap request for: ${bitmapPath} in ${validWidth}x${validHeight} with ${grayscaleLevels} gray levels`,
 		);
 
-		// Resolve the device owner so DB queries are scoped to the right user
+		// Device-side calls (with an API key) resolve the device owner.
+		// Dashboard / preview calls (no API key but a session cookie) fall
+		// back to the current viewer so user-owned liquid recipes are
+		// visible — without this, fetchRecipeFiles only sees user_id IS NULL
+		// rows and catalog-installed recipes render "Screen Not Found".
 		const userId = headers.apiKey
 			? await resolveUserIdFromApiKey(headers.apiKey)
-			: null;
+			: await getCurrentUserId();
 
 		// Forward cookies so browser rendering can reuse the caller's auth session.
 		const cookieHeader = req.headers.get("cookie");

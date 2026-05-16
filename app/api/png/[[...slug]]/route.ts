@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { cache } from "react";
 import NotFoundScreen from "@/app/(app)/recipes/screens/not-found/not-found";
+import { getCurrentUserId } from "@/lib/auth/get-user";
 import { buildRecipeElement, logger } from "@/lib/recipes/recipe-renderer";
 import { renderRecipeTo1BitPng } from "@/lib/recipes/render-1bit-png";
 import {
@@ -29,9 +30,11 @@ export async function GET(
 
 		logger.info(`PNG request: ${slugPath} → ${width}x${height} 1-bit`);
 
+		// Same fallback as /api/bitmap — dashboard previews need
+		// session-scoped userId to see catalog-installed liquid recipes.
 		const userId = headers.apiKey
 			? await resolveUserIdFromApiKey(headers.apiKey)
-			: null;
+			: await getCurrentUserId();
 		const cookieHeader = req.headers.get("cookie") || undefined;
 
 		const png = await render1BitPngCached(
