@@ -89,6 +89,42 @@ const sizedGlyph = (desc: string, px: number) => {
 	);
 };
 
+// Resizable variants of the humidity/wind icons. The exports in icons.tsx
+// are pre-sized JSX elements, so we inline the paths here to size them
+// alongside the bigger hero typography on small panels.
+const sizedHumidityIcon = (px: number) => (
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		width={px}
+		height={px}
+		viewBox="0 -960 960 960"
+		role="img"
+		aria-label="Humidity"
+	>
+		<path d="M480-80q-137 0-228.5-94T160-408q0-100 79.5-217.5T480-880q161 137 240.5 254.5T800-408q0 140-91.5 234T480-80m0-80q104 0 172-70.5T720-408q0-73-60.5-165T480-774Q361-665 300.5-573T240-408q0 107 68 177.5T480-160m0-320" />
+	</svg>
+);
+
+const sizedWindIcon = (px: number) => (
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		width={px}
+		height={px}
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		strokeWidth="2"
+		strokeLinecap="round"
+		strokeLinejoin="round"
+		role="img"
+		aria-label="Wind"
+	>
+		<path d="M12.8 19.6A2 2 0 1 0 14 16H2" />
+		<path d="M17.5 8a2.5 2.5 0 1 1 2 4H2" />
+		<path d="M9.8 4.4A2 2 0 1 1 11 8H2" />
+	</svg>
+);
+
 export default function Weather({
 	temperature = "Loading...",
 	feelsLike = "Loading...",
@@ -123,21 +159,37 @@ export default function Weather({
 		return (
 			<PreSatori width={width} height={height}>
 				<div className="flex flex-col w-full h-full bg-white text-black px-5 py-3">
-					{/* Hero row: big icon + huge temperature + ↑↓ */}
-					<div className="flex flex-row items-center">
-						<div className="shrink-0 mr-4">{sizedGlyph(description, 96)}</div>
-						<div className="flex flex-col leading-none flex-1">
+					{/* Hero: weather icon | temp + ↑↓ | humidity + wind (75% of temp) */}
+					<div className="flex flex-row items-center gap-4">
+						<div className="shrink-0">{sizedGlyph(description, 96)}</div>
+						<div className="flex flex-col leading-none">
 							<span className="text-8xl font-inter">{temperature}°</span>
-							<div className="flex flex-row items-center text-3xl mt-2 font-blockkie">
+							<div className="flex flex-row items-center text-3xl mt-3 font-blockkie">
 								{tempUp} {highTemp}°
 								<span className="inline-block w-4" />
 								{tempDown} {lowTemp}°
 							</div>
 						</div>
+						<div className="ml-auto flex flex-col leading-none gap-2">
+							<div className="flex flex-row items-center gap-3">
+								{sizedHumidityIcon(56)}
+								<span className="text-7xl font-inter tabular-nums">
+									{humidity}
+									<span className="text-4xl ml-1">%</span>
+								</span>
+							</div>
+							<div className="flex flex-row items-center gap-3">
+								{sizedWindIcon(56)}
+								<span className="text-7xl font-inter tabular-nums">
+									{windSpeed}
+									<span className="text-2xl ml-2">mph</span>
+								</span>
+							</div>
+						</div>
 					</div>
 
 					{/* Subtitle row */}
-					<div className="text-2xl mt-1">
+					<div className="text-2xl mt-2">
 						{location} · {description}
 					</div>
 
@@ -174,10 +226,10 @@ export default function Weather({
 
 	// Existing 800×480 / 400×480 layout — unchanged behaviour.
 	const weatherStats = [
-		{ label: "Feels Like", value: `${feelsLike}°C`, icon: tempIcon },
+		{ label: "Feels Like", value: `${feelsLike}°F`, icon: tempIcon },
 		{ label: "Humidity", value: `${humidity}%`, icon: humidityIcon },
-		{ label: "Wind Speed", value: `${windSpeed} km/h`, icon: windIcon },
-		{ label: "Pressure", value: `${pressure} hPa`, icon: pressureIcon },
+		{ label: "Wind Speed", value: `${windSpeed} mph`, icon: windIcon },
+		{ label: "Pressure", value: `${pressure} inHg`, icon: pressureIcon },
 		{ label: "Sunrise", value: `${sunrise}`, icon: sunriseIcon },
 		{ label: "Sunset", value: `${sunset}`, icon: sunsetIcon },
 	];
@@ -191,15 +243,15 @@ export default function Weather({
 					<h2
 						className={`font-inter ${isHalfScreen ? "text-8xl" : "text-9xl"}`}
 					>
-						{temperature}°C
+						{temperature}°F
 					</h2>
 					<div className="flex flex-col items-center justify-center">
 						{getWeatherIcon(description)}
 						{!isHalfScreen && (
 							<div className="text-4xl mt-4 font-blockkie">
 								<div className="flex flex-row items-center">
-									{tempUp} {highTemp}°C
-									{tempDown} {lowTemp}°C
+									{tempUp} {highTemp}°F
+									{tempDown} {lowTemp}°F
 								</div>
 							</div>
 						)}

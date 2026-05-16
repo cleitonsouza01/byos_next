@@ -8,16 +8,17 @@ export default async function AdminLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	// If auth is disabled, redirect away from admin pages
+	// Mono-user mode (AUTH_ENABLED=false) has no session but the synthetic
+	// user is implicitly admin — same model used by requireAdmin() in the
+	// server actions, so admin pages are safe to render here too.
 	if (!auth) {
-		redirect("/");
+		return <>{children}</>;
 	}
 
 	const session = await auth.api.getSession({
 		headers: await headers(),
 	});
 
-	// Check if user is admin
 	const userRole = (session?.user as { role?: string } | undefined)?.role;
 	if (userRole !== "admin") {
 		redirect("/");

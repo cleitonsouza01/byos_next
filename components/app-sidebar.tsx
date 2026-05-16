@@ -12,7 +12,9 @@ import {
 	PencilRuler,
 	Plus,
 	ScrollText,
+	Shield,
 	Shuffle,
+	Users,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -402,6 +404,50 @@ export function AppSidebar({
 										</Link>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
+
+								{/* Admin (mono-user mode only — when auth is enabled the */}
+								{/* same links live in the NavUser avatar dropdown). */}
+								{!authEnabled && (
+									<Collapsible defaultOpen className="group/collapsible">
+										<SidebarMenuItem>
+											<CollapsibleTrigger asChild>
+												<SidebarMenuButton tooltip="Admin">
+													<Shield />
+													<span>Admin</span>
+													<ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+												</SidebarMenuButton>
+											</CollapsibleTrigger>
+											<CollapsibleContent>
+												<SidebarMenuSub>
+													<SidebarMenuSubItem>
+														<SidebarMenuSubButton
+															asChild
+															isActive={currentPath === "/admin/devices"}
+															onMouseEnter={() => prefetch("/admin/devices")}
+														>
+															<Link href="/admin/devices">
+																<Monitor />
+																<span>Manage devices</span>
+															</Link>
+														</SidebarMenuSubButton>
+													</SidebarMenuSubItem>
+													<SidebarMenuSubItem>
+														<SidebarMenuSubButton
+															asChild
+															isActive={currentPath === "/admin/users"}
+															onMouseEnter={() => prefetch("/admin/users")}
+														>
+															<Link href="/admin/users">
+																<Users />
+																<span>Manage users</span>
+															</Link>
+														</SidebarMenuSubButton>
+													</SidebarMenuSubItem>
+												</SidebarMenuSub>
+											</CollapsibleContent>
+										</SidebarMenuItem>
+									</Collapsible>
+								)}
 							</SidebarMenu>
 						</SidebarGroupContent>
 					</SidebarGroup>

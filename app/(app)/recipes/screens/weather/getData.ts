@@ -178,9 +178,11 @@ async function getWeatherData(
 			}
 		}
 
-		// Fetch weather data from Open-Meteo API
+		// Fetch weather data from Open-Meteo API in imperial units
+		// (temperature_unit=fahrenheit, wind_speed_unit=mph). Pressure has
+		// no unit param upstream so we convert hPa→inHg below.
 		const response = await fetch(
-			`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,surface_pressure,weather_code&daily=temperature_2m_max,temperature_2m_min,sunset,sunrise&hourly=temperature_2m,weather_code&forecast_hours=9&timezone=auto`,
+			`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,surface_pressure,weather_code&daily=temperature_2m_max,temperature_2m_min,sunset,sunrise&hourly=temperature_2m,weather_code&forecast_hours=9&timezone=auto&temperature_unit=fahrenheit&wind_speed_unit=mph`,
 			{
 				headers: {
 					Accept: "application/json",
@@ -210,8 +212,11 @@ async function getWeatherData(
 			return Math.round(speed).toString();
 		};
 
-		const formatPressure = (pressure: number): string => {
-			return Math.round(pressure).toString();
+		// Open-Meteo returns surface_pressure in hPa; convert to inHg for
+		// the imperial UI (1 hPa = 0.02953 inHg). One decimal is the
+		// conventional precision for inHg on weather displays.
+		const formatPressure = (pressureHpa: number): string => {
+			return (pressureHpa * 0.02953).toFixed(2);
 		};
 
 		const formatTime = (timeString: string): string => {

@@ -1,10 +1,15 @@
 "use server";
 
+import { auth } from "@/lib/auth/auth";
 import { getCurrentUser } from "@/lib/auth/get-user";
 import { db } from "@/lib/database/db";
 import { checkDbConnection } from "@/lib/database/utils";
 
 async function requireAdmin() {
+	// Mono-user mode (AUTH_ENABLED=false) has no session; the sole user
+	// owns the instance and is treated as admin, matching the pattern in
+	// canReadSystemLogs / canRunSetupSql.
+	if (!auth) return null;
 	const user = await getCurrentUser();
 	if (!user || user.role !== "admin") {
 		throw new Error("Unauthorized");
