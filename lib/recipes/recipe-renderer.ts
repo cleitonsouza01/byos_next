@@ -82,6 +82,12 @@ export type RecipeConfig = {
 		// requested width/height instead of the default 800×480 → resize path.
 		// Set this on recipes with a responsive small-screen layout.
 		nativeRender?: boolean;
+		// Per-recipe override for the dashboard preview dimensions. Drives
+		// both the rendered image size and the DeviceFrame aspect ratio,
+		// so recipes built for a non-800×480 panel don't get cropped or
+		// letterboxed in the preview. Defaults to DEFAULT_IMAGE_WIDTH/HEIGHT.
+		previewWidth?: number;
+		previewHeight?: number;
 		[key: string]: boolean | string | number | undefined;
 	};
 	[key: string]: unknown;

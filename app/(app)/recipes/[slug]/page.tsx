@@ -421,8 +421,20 @@ export default async function RecipePage({
 	const { format } = await searchParams;
 	const config = await fetchRecipeConfig(slug);
 	const isPortrait = format === "portrait";
-	const imageWidth = isPortrait ? DEFAULT_IMAGE_HEIGHT : DEFAULT_IMAGE_WIDTH;
-	const imageHeight = isPortrait ? DEFAULT_IMAGE_WIDTH : DEFAULT_IMAGE_HEIGHT;
+	// Honour per-recipe preview dimensions for recipes built for non-OG
+	// panels (e.g. waveshare_1248b at 1304×984). Falls back to the 800×480
+	// default. Liquid recipes (no config) keep the default — preview is a
+	// design hint, not a contract.
+	const previewWidth =
+		(typeof config?.renderSettings?.previewWidth === "number"
+			? config.renderSettings.previewWidth
+			: undefined) ?? DEFAULT_IMAGE_WIDTH;
+	const previewHeight =
+		(typeof config?.renderSettings?.previewHeight === "number"
+			? config.renderSettings.previewHeight
+			: undefined) ?? DEFAULT_IMAGE_HEIGHT;
+	const imageWidth = isPortrait ? previewHeight : previewWidth;
+	const imageHeight = isPortrait ? previewWidth : previewHeight;
 
 	// --- Liquid recipe path ---
 	if (!config) {
@@ -476,6 +488,8 @@ export default async function RecipePage({
 					<RecipePreviewStage
 						slug={slug}
 						isPortrait={isPortrait}
+						imageWidth={imageWidth}
+						imageHeight={imageHeight}
 						bmpNode={
 							<Suspense fallback={<LoadingState label="Rendering bitmap…" />}>
 								<LiquidRenderComponent
@@ -582,6 +596,8 @@ export default async function RecipePage({
 				<RecipePreviewStage
 					slug={slug}
 					isPortrait={isPortrait}
+					imageWidth={imageWidth}
+					imageHeight={imageHeight}
 					bmpNode={
 						<Suspense fallback={<LoadingState label="Rendering bitmap…" />}>
 							<RenderComponent

@@ -18,6 +18,11 @@ interface RecipePreviewStageProps {
 	pngPipeline?: ReactNode;
 	reactPipeline?: ReactNode;
 	defaultFormat?: FormatKey;
+	/** Override the DeviceFrame aspect for recipes built for a non-800×480
+	 *  panel (e.g. 1304×984 BWR). When omitted, DeviceFrame uses the OG
+	 *  panel dimensions. */
+	imageWidth?: number;
+	imageHeight?: number;
 }
 
 const FORMAT_LABELS: Record<FormatKey, string> = {
@@ -36,6 +41,8 @@ export function RecipePreviewStage({
 	pngPipeline,
 	reactPipeline,
 	defaultFormat = "bmp",
+	imageWidth,
+	imageHeight,
 }: RecipePreviewStageProps) {
 	const router = useRouter();
 	const [format, setFormat] = useState<FormatKey>(defaultFormat);
@@ -119,7 +126,12 @@ export function RecipePreviewStage({
 						isPortrait ? "max-w-[360px]" : "max-w-[720px]",
 					)}
 				>
-					<DeviceFrame size="lg" portrait={isPortrait}>
+					<DeviceFrame
+						size="lg"
+						portrait={isPortrait}
+						imageWidth={imageWidth}
+						imageHeight={imageHeight}
+					>
 						{active?.node}
 					</DeviceFrame>
 				</div>

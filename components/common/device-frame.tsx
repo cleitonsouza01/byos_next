@@ -11,6 +11,12 @@ interface DeviceFrameProps {
 	size?: "sm" | "md" | "lg";
 	/** Portrait flips the screen aspect ratio. */
 	portrait?: boolean;
+	/** Override the screen aspect. Defaults to DEFAULT_IMAGE_WIDTH × HEIGHT,
+	 *  i.e. the TRMNL OG 800×480 panel. Set these on recipes built for a
+	 *  different-aspect panel (e.g. 1304×984 BWR) so the preview doesn't
+	 *  crop or letterbox. */
+	imageWidth?: number;
+	imageHeight?: number;
 	className?: string;
 	/** Render without the outer shadow (useful when nested in a card). */
 	flat?: boolean;
@@ -40,13 +46,15 @@ export function DeviceFrame({
 	children,
 	size = "md",
 	portrait = false,
+	imageWidth = DEFAULT_IMAGE_WIDTH,
+	imageHeight = DEFAULT_IMAGE_HEIGHT,
 	className,
 	flat = false,
 }: DeviceFrameProps) {
 	const styles = sizeStyles[size];
 	const ratio = portrait
-		? `${DEFAULT_IMAGE_HEIGHT} / ${DEFAULT_IMAGE_WIDTH}`
-		: `${DEFAULT_IMAGE_WIDTH} / ${DEFAULT_IMAGE_HEIGHT}`;
+		? `${imageHeight} / ${imageWidth}`
+		: `${imageWidth} / ${imageHeight}`;
 
 	return (
 		<div
