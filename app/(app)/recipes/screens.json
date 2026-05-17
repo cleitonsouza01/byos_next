@@ -159,7 +159,7 @@
 		"published": true,
 		"createdAt": "2026-05-17T00:00:00Z",
 		"updatedAt": "2026-05-17T00:00:00Z",
-		"description": "Weather Forecast designed for the Waveshare 12.48\" Module B (1304×984, 3-color BWR). Uses the red plane for accents (section markers, hot-temperature degree symbol, NOW indicator).",
+		"description": "Weather Forecast designed for the Waveshare 12.48\" Module B (1304×984, 3-color BWR). Two switchable layouts: a temperature-trace chart and an almanac-style calendar page. Both use the red plane for purposeful accents.",
 		"componentPath": "./screens/weather2",
 		"hasDataFetch": true,
 		"props": {
@@ -173,6 +173,16 @@
 				"label": "Location",
 				"description": "City or place name to fetch weather for",
 				"default": "San Francisco"
+			},
+			"layout": {
+				"type": "select",
+				"label": "Layout",
+				"description": "Chart: temperature trace as the visual hero. Calendar: date-led almanac entry on the left, conditions list on the right.",
+				"default": "chart",
+				"options": [
+					{ "value": "chart", "label": "Chart — temperature trace" },
+					{ "value": "calendar", "label": "Calendar — almanac page" }
+				]
 			}
 		},
 		"tags": [
@@ -190,7 +200,7 @@
 		"renderSettings": {
 			"nativeRender": true
 		},
-		"version": "0.1.0",
+		"version": "0.2.0",
 		"category": "display-components"
 	},
 	"responsive-example": {

@@ -6,6 +6,13 @@ import { useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import type {
 	RecipeParamDefinition,
 	RecipeParamDefinitions,
@@ -69,6 +76,27 @@ const renderField = (
 	switch (definition.type) {
 		case "number":
 			return <Input type="number" {...commonProps} />;
+		case "select": {
+			const options = definition.options ?? [];
+			const stringValue = typeof value === "string" ? value : "";
+			return (
+				<Select
+					value={stringValue}
+					onValueChange={(next) => onChange(key, next)}
+				>
+					<SelectTrigger id={key} className="w-full">
+						<SelectValue placeholder={definition.placeholder ?? "Select…"} />
+					</SelectTrigger>
+					<SelectContent>
+						{options.map((opt) => (
+							<SelectItem key={opt.value} value={opt.value}>
+								{opt.label}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+			);
+		}
 		default:
 			return <Input type="text" {...commonProps} />;
 	}

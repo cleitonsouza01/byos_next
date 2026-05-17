@@ -51,7 +51,7 @@ export type ComponentProps = Record<string, unknown> & {
 	height?: number;
 };
 
-export type RecipeParamType = "string" | "number" | "boolean";
+export type RecipeParamType = "string" | "number" | "boolean" | "select";
 
 export type RecipeParamDefinition = {
 	label: string;
@@ -59,6 +59,9 @@ export type RecipeParamDefinition = {
 	description?: string;
 	default?: unknown;
 	placeholder?: string;
+	// Only used when `type: "select"` — renders a dropdown in the recipe
+	// params form. Each option's `value` is what the recipe component sees.
+	options?: Array<{ value: string; label: string }>;
 };
 
 export type RecipeParamDefinitions = Record<string, RecipeParamDefinition>;
