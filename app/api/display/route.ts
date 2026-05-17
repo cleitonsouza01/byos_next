@@ -97,8 +97,11 @@ export async function GET(request: Request) {
 		const orientation = device.screen_orientation || "landscape";
 
 		const deviceModel = device.model ? await findModel(device.model) : null;
-		const isPng =
-			deviceModel?.mime_type === "image/png" && deviceModel.bit_depth === 1;
+		// Route PNG-only firmwares to /api/png regardless of bit depth.
+		// xiao_c6_75v1 is 1-bit, waveshare_1248b is 2-bit BWR; both reject
+		// BMP. The PNG route picks the right pipeline (1-bit vs BWR) from
+		// the requested dimensions.
+		const isPng = deviceModel?.mime_type === "image/png";
 		const ext = isPng ? "png" : "bmp";
 		const imageBaseUrl = isPng
 			? `${headers.hostUrl}/api/png`

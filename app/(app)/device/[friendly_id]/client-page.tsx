@@ -31,6 +31,7 @@ import {
 const DEVICE_SIZE_PRESETS = {
 	"800x480": { width: 800, height: 480 },
 	"640x384": { width: 640, height: 384 },
+	"1304x984": { width: 1304, height: 984 },
 	"1872x1404": { width: 1872, height: 1404 },
 	custom: null,
 } as const;
@@ -78,6 +79,7 @@ export default function DeviceClientPage({
 
 			if (width === 800 && height === 480) return "800x480";
 			if (width === 640 && height === 384) return "640x384";
+			if (width === 1304 && height === 984) return "1304x984";
 			if (width === 1872 && height === 1404) return "1872x1404";
 			return "custom";
 		},
@@ -230,6 +232,8 @@ export default function DeviceClientPage({
 				setDeviceSizePreset("800x480");
 			else if (next.width === 640 && next.height === 384)
 				setDeviceSizePreset("640x384");
+			else if (next.width === 1304 && next.height === 984)
+				setDeviceSizePreset("1304x984");
 			else if (next.width === 1872 && next.height === 1404)
 				setDeviceSizePreset("1872x1404");
 			else setDeviceSizePreset("custom");

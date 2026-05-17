@@ -233,17 +233,20 @@ export async function GET(request: Request) {
 					request.headers.get("x-forwarded-host") ||
 					request.headers.get("host") ||
 					"localhost";
-				const setupImageUrl =
-					modelEntry?.name === "xiao_c6_75v1"
-						? `${proto}://${host}/setup-xiao-c6-75v1.png`
-						: null;
+				const setupImageByModel: Record<string, string> = {
+					xiao_c6_75v1: `${proto}://${host}/setup-xiao-c6-75v1.png`,
+					waveshare_1248b: `${proto}://${host}/setup-waveshare-1248b.png`,
+				};
+				const setupImageUrl = modelEntry?.name
+					? (setupImageByModel[modelEntry.name] ?? null)
+					: null;
 				return NextResponse.json(
 					{
 						status: 200,
 						api_key: newDevice.api_key,
 						friendly_id: newDevice.friendly_id,
 						image_url: setupImageUrl,
-						filename: setupImageUrl ? "setup_xiao_c6_75v1" : null,
+						filename: setupImageUrl ? `setup_${modelEntry?.name}` : null,
 						message: `Device ${newDevice.friendly_id} added to BYOS!`,
 					},
 					{ status: 200 },

@@ -4,6 +4,7 @@ import NotFoundScreen from "@/app/(app)/recipes/screens/not-found/not-found";
 import { getCurrentUserId } from "@/lib/auth/get-user";
 import { buildRecipeElement, logger } from "@/lib/recipes/recipe-renderer";
 import { renderRecipeTo1BitPng } from "@/lib/recipes/render-1bit-png";
+import { renderRecipeToBwrPng } from "@/lib/recipes/render-bwr-png";
 import {
 	parseRequestHeaders,
 	resolveUserIdFromApiKey,
@@ -11,6 +12,18 @@ import {
 
 const DEFAULT_WIDTH = 640;
 const DEFAULT_HEIGHT = 384;
+
+// Devices that use the 3-color BWR pipeline. Detected by the requested
+// dimensions matching a known BWR panel, since the firmware doesn't
+// currently advertise its palette in headers. Keep this list in sync with
+// data/trmnl/models.local.json palette_ids === ["color-3bwr"].
+const BWR_PANELS: Array<{ width: number; height: number }> = [
+	{ width: 1304, height: 984 },
+];
+
+function isBwrPanel(width: number, height: number): boolean {
+	return BWR_PANELS.some((p) => p.width === width && p.height === height);
+}
 
 export async function GET(
 	req: NextRequest,
@@ -27,8 +40,11 @@ export async function GET(
 		const h = parseInt(searchParams.get("height") || "", 10);
 		const width = w > 0 ? w : DEFAULT_WIDTH;
 		const height = h > 0 ? h : DEFAULT_HEIGHT;
+		const bwr = isBwrPanel(width, height);
 
-		logger.info(`PNG request: ${slugPath} → ${width}x${height} 1-bit`);
+		logger.info(
+			`PNG request: ${slugPath} → ${width}x${height} ${bwr ? "BWR" : "1-bit"}`,
+		);
 
 		// Same fallback as /api/bitmap — dashboard previews need
 		// session-scoped userId to see catalog-installed liquid recipes.
@@ -37,17 +53,25 @@ export async function GET(
 			: await getCurrentUserId();
 		const cookieHeader = req.headers.get("cookie") || undefined;
 
-		const png = await render1BitPngCached(
-			recipeSlug,
-			width,
-			height,
-			userId,
-			cookieHeader,
-		);
+		const png = bwr
+			? await renderBwrPngCached(
+					recipeSlug,
+					width,
+					height,
+					userId,
+					cookieHeader,
+				)
+			: await render1BitPngCached(
+					recipeSlug,
+					width,
+					height,
+					userId,
+					cookieHeader,
+				);
 
 		if (!png || png.length === 0) {
 			logger.warn(`PNG render empty for ${recipeSlug}, falling back`);
-			return await renderFallback1BitPng(width, height);
+			return await renderFallbackPng(width, height, bwr);
 		}
 
 		return new Response(new Uint8Array(png), {
@@ -60,8 +84,8 @@ export async function GET(
 			},
 		});
 	} catch (error) {
-		logger.error("Error generating 1-bit PNG:", error);
-		return await renderFallback1BitPng();
+		logger.error("Error generating PNG:", error);
+		return await renderFallbackPng(DEFAULT_WIDTH, DEFAULT_HEIGHT, false);
 	}
 }
 
@@ -90,17 +114,51 @@ const render1BitPngCached = cache(
 	},
 );
 
-const renderFallback1BitPng = cache(
-	async (width: number = DEFAULT_WIDTH, height: number = DEFAULT_HEIGHT) => {
+const renderBwrPngCached = cache(
+	async (
+		recipeId: string,
+		width: number,
+		height: number,
+		userId: string | null,
+		cookies?: string,
+	) => {
+		const built = await buildRecipeElement({
+			slug: recipeId,
+			userId: userId ?? undefined,
+		});
+		return renderRecipeToBwrPng({
+			slug: recipeId,
+			Component: built.Component,
+			props: built.props,
+			config: built.config,
+			html: built.html,
+			cookies,
+			outputWidth: width,
+			outputHeight: height,
+		});
+	},
+);
+
+const renderFallbackPng = cache(
+	async (width: number, height: number, bwr: boolean) => {
 		try {
-			const png = await renderRecipeTo1BitPng({
-				slug: "not-found",
-				Component: NotFoundScreen,
-				props: { slug: "not-found" },
-				config: null,
-				outputWidth: width,
-				outputHeight: height,
-			});
+			const png = bwr
+				? await renderRecipeToBwrPng({
+						slug: "not-found",
+						Component: NotFoundScreen,
+						props: { slug: "not-found" },
+						config: null,
+						outputWidth: width,
+						outputHeight: height,
+					})
+				: await renderRecipeTo1BitPng({
+						slug: "not-found",
+						Component: NotFoundScreen,
+						props: { slug: "not-found" },
+						config: null,
+						outputWidth: width,
+						outputHeight: height,
+					});
 			if (!png) throw new Error("fallback render returned null");
 			return new Response(new Uint8Array(png), {
 				headers: {

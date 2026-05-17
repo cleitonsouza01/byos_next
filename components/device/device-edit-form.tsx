@@ -43,6 +43,7 @@ import { formatTimezone, timezones } from "@/utils/helpers";
 const DEVICE_SIZE_PRESETS = {
 	"800x480": { width: 800, height: 480 },
 	"640x384": { width: 640, height: 384 },
+	"1304x984": { width: 1304, height: 984 },
 	"1872x1404": { width: 1872, height: 1404 },
 	custom: null,
 } as const;
@@ -488,6 +489,7 @@ export default function DeviceEditForm({
 									<SelectContent>
 										<SelectItem value="800x480">800 × 480</SelectItem>
 										<SelectItem value="640x384">640 × 384</SelectItem>
+										<SelectItem value="1304x984">1304 × 984</SelectItem>
 										<SelectItem value="1872x1404">1872 × 1404</SelectItem>
 										<SelectItem value="custom">Custom</SelectItem>
 									</SelectContent>
