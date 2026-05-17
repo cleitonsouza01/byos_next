@@ -154,6 +154,45 @@
 		"version": "0.4.0",
 		"category": "display-components"
 	},
+	"weather2": {
+		"title": "Weather Forecast 2",
+		"published": true,
+		"createdAt": "2026-05-17T00:00:00Z",
+		"updatedAt": "2026-05-17T00:00:00Z",
+		"description": "Weather Forecast designed for the Waveshare 12.48\" Module B (1304×984, 3-color BWR). Uses the red plane for accents (section markers, hot-temperature degree symbol, NOW indicator).",
+		"componentPath": "./screens/weather2",
+		"hasDataFetch": true,
+		"props": {
+			"temperature": "—",
+			"description": "—",
+			"location": "—"
+		},
+		"params": {
+			"location": {
+				"type": "string",
+				"label": "Location",
+				"description": "City or place name to fetch weather for",
+				"default": "San Francisco"
+			}
+		},
+		"tags": [
+			"tailwind",
+			"weather",
+			"api",
+			"live-data",
+			"bwr",
+			"waveshare_1248b"
+		],
+		"author": {
+			"name": "byos_next",
+			"github": ""
+		},
+		"renderSettings": {
+			"nativeRender": true
+		},
+		"version": "0.1.0",
+		"category": "display-components"
+	},
 	"responsive-example": {
 		"title": "Responsive Example",
 		"published": true,

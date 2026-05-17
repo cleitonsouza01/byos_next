@@ -8,7 +8,7 @@
 		"generate:sql": "node scripts/generate-sql-statements.js && pnpm format",
 		"generate:types": "kysely-codegen --dialect postgres --include-pattern='public.*' --out-file lib/database/db.d.ts",
 		"prebuild": "pnpm generate:sql",
-		"dev": "pnpm generate:sql && next dev --turbopack",
+		"dev": "pnpm generate:sql && next dev --turbopack --port 3777",
 		"build": "next build",
 		"start": "next start",
 		"lint": "biome check ./app ./components ./lib ./utils ./hooks",
