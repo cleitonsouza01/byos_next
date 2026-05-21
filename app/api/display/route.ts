@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/database/db";
 import { checkDbConnection } from "@/lib/database/utils";
-import { getLatestFirmware, isUpdateAvailable } from "@/lib/firmware";
+import {
+	getLatestFirmware,
+	isFirmwareUrlReachable,
+	isUpdateAvailable,
+} from "@/lib/firmware";
 import { logError, logInfo } from "@/lib/logger";
 import { DeviceDisplayMode } from "@/lib/mixup/constants";
 import {
@@ -202,8 +206,6 @@ export async function GET(request: Request) {
 		};
 		logInfo("Display request successful", { source: "api/display", metadata });
 
-		// Check for firmware updates
-		const latestFirmware = await getLatestFirmware();
 		const firmwareExtra: Record<string, unknown> = {
 			// Tell the firmware how to rotate the panel. The TRMNL panel is
 			// portrait-native, so a landscape orientation needs a 90° rotation.
@@ -211,20 +213,32 @@ export async function GET(request: Request) {
 			image_rotate: orientation === "landscape" ? 1 : 0,
 		};
 
-		if (
-			latestFirmware &&
-			isUpdateAvailable(device.firmware_version, latestFirmware.version)
-		) {
-			firmwareExtra.update_firmware = true;
-			firmwareExtra.firmware_url = latestFirmware.downloadUrl;
-			logInfo("Firmware update available", {
-				source: "api/display",
-				metadata: {
-					deviceId: device.friendly_id,
-					currentVersion: device.firmware_version,
-					latestVersion: latestFirmware.version,
-				},
-			});
+		// Firmware OTA push is opt-in. A BYOS server pushing official TRMNL
+		// firmware is the device owner's choice, and the public S3 binaries
+		// the GitHub release implies (FW{version}.bin) currently 404 — so
+		// pushing update_firmware:true hands the device a dead URL, and the
+		// firmware loops on a failing OTA download instead of ever rendering
+		// the screen (symptom: device polls every few seconds, display never
+		// updates). Only advertise an update when explicitly enabled AND the
+		// binary is actually reachable.
+		if (process.env.ENABLE_FIRMWARE_OTA === "true") {
+			const latestFirmware = await getLatestFirmware();
+			if (
+				latestFirmware &&
+				isUpdateAvailable(device.firmware_version, latestFirmware.version) &&
+				(await isFirmwareUrlReachable(latestFirmware.downloadUrl))
+			) {
+				firmwareExtra.update_firmware = true;
+				firmwareExtra.firmware_url = latestFirmware.downloadUrl;
+				logInfo("Firmware update available", {
+					source: "api/display",
+					metadata: {
+						deviceId: device.friendly_id,
+						currentVersion: device.firmware_version,
+						latestVersion: latestFirmware.version,
+					},
+				});
+			}
 		}
 
 		return buildDisplayResponse(

@@ -1,19 +1,19 @@
 services:
-  byos-next:
+  trmnl_app:
     build:
       context: .
       args:
         BROWSER: "true"
-    image: byos-next-browser
+    image: trmnl_app_browser
     environment:
       - BROWSER_URL=http://127.0.0.1:9222
       - REACT_RENDERER=browser
     networks:
-      - byos_network
+      - trmnl_network
 
-  chrome:
+  trmnl_chrome:
     image: zenika/alpine-chrome
-    network_mode: "service:byos-next"
+    network_mode: "service:trmnl_app"
     command:
       - "--no-sandbox"
       - "--disable-setuid-sandbox"

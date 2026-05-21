@@ -105,10 +105,43 @@ export async function getLatestFirmware(): Promise<FirmwareRelease | null> {
 	}
 }
 
+// Reachability is cached alongside the release so we issue at most one HEAD
+// per URL per TTL window rather than on every device poll.
+const reachableUrls = new Map<string, boolean>();
+
+/**
+ * Verify a firmware binary actually exists before we tell a device to flash
+ * it. The TRMNL firmware treats `update_firmware: true` as a command to
+ * download + flash; pointing it at a 404 puts the device in a failed-OTA
+ * retry loop where it never renders the screen. A cheap HEAD guards against
+ * that.
+ * @param url - Candidate firmware binary URL
+ */
+export async function isFirmwareUrlReachable(url: string): Promise<boolean> {
+	const cached = reachableUrls.get(url);
+	if (cached !== undefined) return cached;
+	try {
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), 5000);
+		const response = await fetch(url, {
+			method: "HEAD",
+			signal: controller.signal,
+		});
+		clearTimeout(timeout);
+		const ok = response.ok;
+		reachableUrls.set(url, ok);
+		return ok;
+	} catch {
+		reachableUrls.set(url, false);
+		return false;
+	}
+}
+
 /**
  * Clear the firmware cache (useful for testing)
  */
 export function clearFirmwareCache(): void {
 	cachedRelease = null;
 	cacheTime = 0;
+	reachableUrls.clear();
 }

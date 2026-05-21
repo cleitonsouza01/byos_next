@@ -155,11 +155,11 @@
 		"category": "display-components"
 	},
 	"weather2": {
-		"title": "Weather Forecast 2",
+		"title": "Weather Forecast — Editorial",
 		"published": true,
 		"createdAt": "2026-05-17T00:00:00Z",
-		"updatedAt": "2026-05-17T00:00:00Z",
-		"description": "Weather Forecast designed for the Waveshare 12.48\" Module B (1304×984, 3-color BWR). Two switchable layouts: a temperature-trace chart and an almanac-style calendar page. Both use the red plane for purposeful accents.",
+		"updatedAt": "2026-05-18T00:00:00Z",
+		"description": "Editorial newsprint layout for Waveshare 12.48\" Module B (1304×984, BWR). Hero shows the temperature in DM Serif Display red + an italic serif condition. Humidity & Wind values render at 60 % of the temperature font size. Forecasts read as vertical lists, not cards.",
 		"componentPath": "./screens/weather2",
 		"hasDataFetch": true,
 		"props": {
@@ -173,16 +173,6 @@
 				"label": "Location",
 				"description": "City or place name to fetch weather for",
 				"default": "San Francisco"
-			},
-			"layout": {
-				"type": "select",
-				"label": "Layout",
-				"description": "Chart: temperature trace as the visual hero. Calendar: date-led almanac entry on the left, conditions list on the right.",
-				"default": "chart",
-				"options": [
-					{ "value": "chart", "label": "Chart — temperature trace" },
-					{ "value": "calendar", "label": "Calendar — almanac page" }
-				]
 			}
 		},
 		"tags": [
@@ -202,7 +192,49 @@
 			"previewWidth": 1304,
 			"previewHeight": 984
 		},
-		"version": "0.3.0",
+		"version": "1.0.0",
+		"category": "display-components"
+	},
+	"weather3": {
+		"title": "Weather Forecast — Timeline",
+		"published": true,
+		"createdAt": "2026-05-18T00:00:00Z",
+		"updatedAt": "2026-05-18T00:00:00Z",
+		"description": "Timeline-spine forecast for Waveshare 12.48\" Module B (1304×984, BWR). The 24-hour temperature curve is the centerpiece: precipitation hours are marked with red vertical bands and NOW with a thick red marker. Humidity and Wind values render at 60 % of the temperature font size.",
+		"componentPath": "./screens/weather3",
+		"hasDataFetch": true,
+		"props": {
+			"temperature": "—",
+			"description": "—",
+			"location": "—"
+		},
+		"params": {
+			"location": {
+				"type": "string",
+				"label": "Location",
+				"description": "City or place name to fetch weather for",
+				"default": "San Francisco"
+			}
+		},
+		"tags": [
+			"tailwind",
+			"weather",
+			"api",
+			"live-data",
+			"chart",
+			"bwr",
+			"waveshare_1248b"
+		],
+		"author": {
+			"name": "byos_next",
+			"github": ""
+		},
+		"renderSettings": {
+			"nativeRender": true,
+			"previewWidth": 1304,
+			"previewHeight": 984
+		},
+		"version": "1.0.0",
 		"category": "display-components"
 	},
 	"responsive-example": {

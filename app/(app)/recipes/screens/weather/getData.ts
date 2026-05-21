@@ -8,6 +8,18 @@ export interface HourlyForecast {
 	temperature: string;
 	weatherCode: number;
 	description: string;
+	// Open-Meteo's is_day flag for this hour. 1 = daytime, 0 = night.
+	// Recipes use this to swap sun glyphs for moon glyphs after sunset.
+	isDay: number;
+}
+
+export interface DailyForecast {
+	// Three-letter weekday abbreviation, e.g. "MON". Display-ready.
+	label: string;
+	highTemp: string;
+	lowTemp: string;
+	weatherCode: number;
+	description: string;
 }
 
 interface WeatherData {
@@ -25,7 +37,15 @@ interface WeatherData {
 	sunrise: string;
 	latitude: number;
 	longitude: number;
+	// IANA timezone reported by Open-Meteo for the queried coords
+	// (e.g. "America/New_York"). Use it to format any wall-clock the
+	// recipe shows so the time matches the *location*, not the server.
+	timezone: string;
+	// Open-Meteo's current-condition is_day flag (1 = day, 0 = night).
+	// Recipes use this to swap the hero glyph for a moon variant.
+	isDay: number;
 	hourly: HourlyForecast[];
+	daily: DailyForecast[];
 }
 
 type WeatherParams = {
@@ -44,6 +64,7 @@ interface GeocodingResponse {
 }
 
 interface OpenMeteoResponse {
+	timezone: string;
 	current: {
 		time: string;
 		temperature_2m: number;
@@ -52,6 +73,7 @@ interface OpenMeteoResponse {
 		wind_speed_10m: number;
 		surface_pressure: number;
 		weather_code: number;
+		is_day: number;
 	};
 	daily: {
 		time: string[];
@@ -59,11 +81,13 @@ interface OpenMeteoResponse {
 		temperature_2m_min: number[];
 		sunset: string[];
 		sunrise: string[];
+		weather_code: number[];
 	};
 	hourly: {
 		time: string[];
 		temperature_2m: number[];
 		weather_code: number[];
+		is_day: number[];
 	};
 }
 
@@ -180,9 +204,11 @@ async function getWeatherData(
 
 		// Fetch weather data from Open-Meteo API in imperial units
 		// (temperature_unit=fahrenheit, wind_speed_unit=mph). Pressure has
-		// no unit param upstream so we convert hPa→inHg below.
+		// no unit param upstream so we convert hPa→inHg below. We request
+		// 6 days of daily data so recipes can render a multi-day forecast
+		// strip; older single-day consumers still read daily[0] as before.
 		const response = await fetch(
-			`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,surface_pressure,weather_code&daily=temperature_2m_max,temperature_2m_min,sunset,sunrise&hourly=temperature_2m,weather_code&forecast_hours=9&timezone=auto&temperature_unit=fahrenheit&wind_speed_unit=mph`,
+			`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,surface_pressure,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,sunset,sunrise,weather_code&hourly=temperature_2m,weather_code,is_day&forecast_hours=24&forecast_days=6&timezone=auto&temperature_unit=fahrenheit&wind_speed_unit=mph`,
 			{
 				headers: {
 					Accept: "application/json",
@@ -212,11 +238,11 @@ async function getWeatherData(
 			return Math.round(speed).toString();
 		};
 
-		// Open-Meteo returns surface_pressure in hPa; convert to inHg for
-		// the imperial UI (1 hPa = 0.02953 inHg). One decimal is the
-		// conventional precision for inHg on weather displays.
+		// Open-Meteo returns surface_pressure in hPa — return as-is
+		// (rounded to integer, the conventional precision for hPa on
+		// weather displays). Consumers should label the value "hPa".
 		const formatPressure = (pressureHpa: number): string => {
-			return (pressureHpa * 0.02953).toFixed(2);
+			return Math.round(pressureHpa).toString();
 		};
 
 		const formatTime = (timeString: string): string => {
@@ -263,8 +289,26 @@ async function getWeatherData(
 				temperature: formatTemperature(hourly.temperature_2m[i]),
 				weatherCode: hourly.weather_code[i],
 				description: getWeatherDescription(hourly.weather_code[i]),
+				isDay: hourly.is_day?.[i] ?? 1,
 			}),
 		);
+
+		const formatDayLabel = (timeString: string, index: number): string => {
+			// First entry is "today". Subsequent entries get the three-letter
+			// weekday so the forecast strip reads MON, TUE, WED, ... at a
+			// glance.
+			if (index === 0) return "TODAY";
+			const date = new Date(timeString);
+			return date.toLocaleString("en-US", { weekday: "short" }).toUpperCase();
+		};
+
+		const dailyForecast: DailyForecast[] = (daily?.time ?? []).map((t, i) => ({
+			label: formatDayLabel(t, i),
+			highTemp: formatTemperature(daily.temperature_2m_max[i]),
+			lowTemp: formatTemperature(daily.temperature_2m_min[i]),
+			weatherCode: daily.weather_code?.[i] ?? 0,
+			description: getWeatherDescription(daily.weather_code?.[i] ?? 0),
+		}));
 
 		return {
 			temperature: formatTemperature(current.temperature_2m),
@@ -281,7 +325,10 @@ async function getWeatherData(
 			sunrise: formatTime(daily.sunrise[0]),
 			latitude: latitude || 0,
 			longitude: longitude || 0,
+			timezone: data.timezone || "UTC",
+			isDay: current.is_day ?? 1,
 			hourly: hourlyForecast,
+			daily: dailyForecast,
 		};
 	} catch (error) {
 		// Silently handle prerendering errors - fetch() rejects during prerendering
@@ -330,7 +377,10 @@ async function fetchWeatherDataNoCache(
 			sunrise: "N/A",
 			latitude: params?.latitude || 0,
 			longitude: params?.longitude || 0,
+			timezone: "UTC",
+			isDay: 1,
 			hourly: [],
+			daily: [],
 		};
 	}
 

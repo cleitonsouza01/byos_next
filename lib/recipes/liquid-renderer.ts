@@ -227,6 +227,37 @@ function isSafePollingUrl(raw: string): boolean {
 }
 
 /**
+ * Fetch following redirects manually, re-validating every hop against the
+ * SSRF guard before requesting it. Real RSS/JSON feeds redirect constantly
+ * (http→https, apex→www, CDN edges), so we can't reject redirects outright —
+ * but we also can't let `redirect: "follow"` chase an attacker-controlled
+ * 30x into an internal address. `redirect: "manual"` lets us inspect each
+ * Location header and validate it first.
+ */
+async function fetchWithSafeRedirects(
+	url: string,
+	init: RequestInit,
+	maxRedirects = 5,
+): Promise<Response> {
+	let currentUrl = url;
+	for (let hop = 0; hop <= maxRedirects; hop++) {
+		if (!isSafePollingUrl(currentUrl)) {
+			throw new Error(`Redirect target blocked by SSRF guard: ${currentUrl}`);
+		}
+		const response = await fetch(currentUrl, { ...init, redirect: "manual" });
+		if (response.status >= 300 && response.status < 400) {
+			const location = response.headers.get("location");
+			if (!location) return response;
+			// Resolve relative redirects against the current URL.
+			currentUrl = new URL(location, currentUrl).toString();
+			continue;
+		}
+		return response;
+	}
+	throw new Error(`Too many redirects (>${maxRedirects}) for ${url}`);
+}
+
+/**
  * Fetch data from polling URL(s). Multiple URLs can be newline-separated.
  * Each URL's data is assigned to IDX_0, IDX_1, etc.
  */
@@ -249,10 +280,9 @@ async function fetchPollingData(
 			const controller = new AbortController();
 			const timeout = setTimeout(() => controller.abort(), 10000);
 			try {
-				const response = await fetch(url, {
+				const response = await fetchWithSafeRedirects(url, {
 					signal: controller.signal,
 					headers: { "User-Agent": "BYOS/1.0" },
-					redirect: "error",
 				});
 				if (!response.ok) {
 					logger.warn(`Polling URL ${url} returned ${response.status}`);
@@ -273,6 +303,19 @@ async function fetchPollingData(
 		if (settled.status === "fulfilled" && settled.value.result !== null) {
 			data[`IDX_${settled.value.index}`] = settled.value.result;
 		}
+	}
+
+	// TRMNL convention: a single polling URL exposes its JSON at the root
+	// context (templates use `{{ items }}`, `{{ title }}` directly), while
+	// multiple URLs stay namespaced under IDX_0, IDX_1, … We keep IDX_0 in
+	// both cases for templates that reference it explicitly.
+	if (
+		urls.length === 1 &&
+		data.IDX_0 &&
+		typeof data.IDX_0 === "object" &&
+		!Array.isArray(data.IDX_0)
+	) {
+		Object.assign(data, data.IDX_0 as Record<string, unknown>);
 	}
 
 	return data;
@@ -310,6 +353,27 @@ export function removeCosmeticParens(content: string): string {
 		/\{%[-\s]*(if|elsif|unless)\s+([\s\S]*?)[-]?%\}/g,
 		(match) => match.replace(/[()]/g, ""),
 	);
+}
+
+/**
+ * Normalize control-flow that some community plugins ship but that
+ * liquidjs (and Shopify/Ruby Liquid) reject:
+ *   - `{% else if X %}` → `{% elsif X %}` (the "Advanced RSS" plugin uses
+ *      this and fails to parse with `unexpected "if body"`)
+ *   - `&&` / `||` → `and` / `or` inside {% if/elsif/unless %} tags, since
+ *      Liquid uses word operators, not C-style symbols.
+ * Operator rewriting is scoped to conditional tags so it never touches
+ * `|` filter pipelines or JS inside <script> blocks.
+ */
+export function normalizeLiquidControlFlow(content: string): string {
+	// `else if` → `elsif`, preserving any whitespace-control dash.
+	let out = content.replace(/\{%(-?)\s*else\s+if\s+/g, "{%$1 elsif ");
+	// `&&`/`||` → `and`/`or`, only within conditional tags.
+	out = out.replace(
+		/\{%[-\s]*(if|elsif|unless)\s+([\s\S]*?)[-]?%\}/g,
+		(match) => match.replace(/&&/g, " and ").replace(/\|\|/g, " or "),
+	);
+	return out;
 }
 
 /**
@@ -441,6 +505,24 @@ export async function renderLiquidRecipe(
 		return null;
 	}
 
+	// Normalize TRMNL→liquidjs quirks across every .liquid file up front, so
+	// both the registered partials AND the concatenated full template get the
+	// same treatment. Previously these ran only on the final full template,
+	// which left `{% render %}`-ed partials (registered raw) with syntax
+	// liquidjs rejects — cosmetic parens, `else if`, C-style operators, JS in
+	// <script> blocks. Order: protect scripts first, then rewrite control flow,
+	// then strip parens.
+	for (const [name, content] of files) {
+		if (name.endsWith(".liquid")) {
+			files.set(
+				name,
+				removeCosmeticParens(
+					normalizeLiquidControlFlow(wrapNonLiquidScripts(content)),
+				),
+			);
+		}
+	}
+
 	// Parse settings
 	const settingsContent = findTemplateFile(files, "settings.yml");
 	const settings = settingsContent ? parseSettings(settingsContent) : {};
@@ -477,10 +559,17 @@ export async function renderLiquidRecipe(
 		return null;
 	}
 
-	// Build templates map for partials (all .liquid files except full.liquid)
+	// Build templates map for partials. Whole-file partials are registered
+	// for every .liquid file except full.liquid (the entry point). But
+	// `{% template name %}` blocks are extracted from ALL files, including
+	// full.liquid — recipes like "Advanced RSS" define layout partials
+	// (e.g. layout_grid_list) inside full.liquid and reference them via
+	// `{% render %}`.
 	const templates: Record<string, string> = {};
 	for (const [filename, content] of files) {
-		if (filename.endsWith(".liquid") && !filename.endsWith("full.liquid")) {
+		if (!filename.endsWith(".liquid")) continue;
+
+		if (!filename.endsWith("full.liquid")) {
 			const baseName = filename
 				.replace(/^src\//, "")
 				.replace(/^views\//, "")
@@ -488,16 +577,16 @@ export async function renderLiquidRecipe(
 				.replace(/\.liquid$/, "");
 			templates[baseName] = content;
 			templates[filename] = content;
+		}
 
-			// Extract {% template name %}...{% endtemplate %} blocks as named partials
-			// so they can be referenced via {% render 'name' %}
-			const blockRegex =
-				/\{%[-\s]*template\s+(\w+)\s*[-]?%\}([\s\S]*?)\{%[-\s]*endtemplate\s*[-]?%\}/g;
-			let blockMatch = blockRegex.exec(content);
-			while (blockMatch !== null) {
-				templates[blockMatch[1]] = blockMatch[2].trim();
-				blockMatch = blockRegex.exec(content);
-			}
+		// Extract {% template name %}...{% endtemplate %} blocks as named
+		// partials so they can be referenced via {% render 'name' %}.
+		const blockRegex =
+			/\{%[-\s]*template\s+(\w+)\s*[-]?%\}([\s\S]*?)\{%[-\s]*endtemplate\s*[-]?%\}/g;
+		let blockMatch = blockRegex.exec(content);
+		while (blockMatch !== null) {
+			templates[blockMatch[1]] = blockMatch[2].trim();
+			blockMatch = blockRegex.exec(content);
 		}
 	}
 	const sharedTemplate = findTemplateFile(files, "shared.liquid");
@@ -547,8 +636,9 @@ export async function renderLiquidRecipe(
 	};
 
 	try {
-		const prepared = removeCosmeticParens(wrapNonLiquidScripts(fullTemplate));
-		const body = await engine.parseAndRender(prepared, context);
+		// fullTemplate is assembled from already-normalized files (see the
+		// per-file pass above), so no further preprocessing is needed here.
+		const body = await engine.parseAndRender(fullTemplate, context);
 		const html = `
 <!DOCTYPE html>
 <html>

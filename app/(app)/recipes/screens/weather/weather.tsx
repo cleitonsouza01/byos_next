@@ -229,7 +229,7 @@ export default function Weather({
 		{ label: "Feels Like", value: `${feelsLike}°F`, icon: tempIcon },
 		{ label: "Humidity", value: `${humidity}%`, icon: humidityIcon },
 		{ label: "Wind Speed", value: `${windSpeed} mph`, icon: windIcon },
-		{ label: "Pressure", value: `${pressure} inHg`, icon: pressureIcon },
+		{ label: "Pressure", value: `${pressure} hPa`, icon: pressureIcon },
 		{ label: "Sunrise", value: `${sunrise}`, icon: sunriseIcon },
 		{ label: "Sunset", value: `${sunset}`, icon: sunsetIcon },
 	];

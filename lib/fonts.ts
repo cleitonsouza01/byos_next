@@ -4,10 +4,34 @@ import localFont from "next/font/local";
 import path from "path";
 import { cache } from "react";
 
+// Each entry maps a logical key to its on-disk TTF. Multiple keys may
+// share a family name (e.g. inter / interBold / interBlack all surface
+// to Satori/Takumi as family "inter" with weights 400/700/900) so that
+// `font-bold` / `font-extrabold` resolve to a real outline instead of
+// dropping into Takumi's pixel-bitmap fallback.
 const fontPaths = {
-	blockKie: path.join(process.cwd(), "public", "fonts", "BlockKie.ttf"),
-	geneva9: path.join(process.cwd(), "public", "fonts", "geneva-9.ttf"),
-	inter: path.join(process.cwd(), "public", "fonts", "Inter_18pt-Regular.ttf"),
+	blockKie:     path.join(process.cwd(), "public", "fonts", "BlockKie.ttf"),
+	geneva9:      path.join(process.cwd(), "public", "fonts", "geneva-9.ttf"),
+	inter:        path.join(process.cwd(), "public", "fonts", "Inter_18pt-Regular.ttf"),
+	interBold:    path.join(process.cwd(), "public", "fonts", "Inter-Bold.ttf"),
+	interBlack:   path.join(process.cwd(), "public", "fonts", "Inter-Black.ttf"),
+	dmserif:      path.join(process.cwd(), "public", "fonts", "DMSerifDisplay-Regular.ttf"),
+	amberygarden: path.join(process.cwd(), "public", "fonts", "AmberyGardenRegular.ttf"),
+};
+
+// Per-file weight + family override used by getTakumiFonts so Takumi
+// can resolve `font-bold` / `font-extrabold` instead of pixel-bitmapping.
+// Weight is constrained to the literal union Satori's FontOptions
+// accepts so the consuming `new ImageResponse({ fonts })` typechecks.
+type TakumiWeight = 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
+const fontWeightMap: Record<string, { family: string; weight: TakumiWeight }> = {
+	blockKie:     { family: "blockkie",     weight: 400 },
+	geneva9:      { family: "geneva9",      weight: 400 },
+	inter:        { family: "inter",        weight: 400 },
+	interBold:    { family: "inter",        weight: 700 },
+	interBlack:   { family: "inter",        weight: 900 },
+	dmserif:      { family: "dmserif",      weight: 400 },
+	amberygarden: { family: "amberygarden", weight: 400 },
 };
 
 // System fonts configuration
@@ -56,6 +80,24 @@ export const inter = localFont({
 	style: "normal",
 });
 
+export const amberygarden = localFont({
+	src: "../public/fonts/AmberyGardenRegular.ttf",
+	variable: "--font-amberygarden",
+	preload: true,
+	display: "swap",
+	weight: "400",
+	style: "normal",
+});
+
+export const dmserif = localFont({
+	src: "../public/fonts/DMSerifDisplay-Regular.ttf",
+	variable: "--font-dmserif",
+	preload: true,
+	display: "swap",
+	weight: "400",
+	style: "normal",
+});
+
 // Font variables organized by purpose
 export const fonts = {
 	sans: fontSans,
@@ -63,6 +105,8 @@ export const fonts = {
 	blockKie: blockKie,
 	geneva9: geneva9,
 	inter: inter,
+	amberygarden: amberygarden,
+	dmserif: dmserif,
 } as const;
 
 // Helper to get all font variables
@@ -94,7 +138,6 @@ export const loadFont = cache(() => {
 export const getTakumiFonts = () => {
 	const fonts = loadFont();
 	if (!fonts) return [];
-	const weight = 400 as const;
 	const style = "normal" as const;
 
 	const takumiFonts = Object.entries(fonts).map(([fontName, fontBuffer]) => {
@@ -104,10 +147,15 @@ export const getTakumiFonts = () => {
 		}
 		data = Uint8Array.from(fontBuffer).buffer;
 
+		const mapping = fontWeightMap[fontName] ?? {
+			family: fontName,
+			weight: 400,
+		};
+
 		return {
-			name: fontName,
+			name: mapping.family,
 			data: data,
-			weight: weight,
+			weight: mapping.weight,
 			style: style,
 		};
 	});
@@ -115,10 +163,15 @@ export const getTakumiFonts = () => {
 	return takumiFonts;
 };
 
+// Returns the font family declared on the element via `font-XXX`
+// Tailwind class, or undefined when none is set. Returning undefined
+// lets Satori/Takumi do normal CSS inheritance — each recipe declares
+// its font once on the root and child elements inherit. Previously
+// this defaulted to "blockkie" (a pixel bitmap) on every untagged
+// element, which broke inheritance and forced fallback rendering for
+// recipes that wanted clean vector type.
 export const extractFontFamily = (className?: string): string | undefined => {
-	const defaultFont = "blockkie";
-	if (!className) return defaultFont;
-
+	if (!className) return undefined;
 	const fontClass = className.split(" ").find((cls) => cls.startsWith("font-"));
-	return fontClass?.replace("font-", "") || defaultFont;
+	return fontClass?.replace("font-", "") || undefined;
 };
